@@ -89,17 +89,40 @@ class PolicyIteration:
 
     def policy_evaluation(self):  # Policy evaluation
         cnt = 1  #counter
-        ############################
-        # YOUR IMPLEMENTATION HERE #
-        ############################
-        pass
+        while True:
+            delta = 0
+            # For each state
+            for s in range(self.ncol * self.nrow):
+                v = self.v[s]
+                new_v = 0
+                # For each action with its probability in the policy
+                for a, pi_a in enumerate(self.pi[s]):
+                    for p, next_state, reward, done in self.P[s][a]:
+                        new_v += pi_a * p * (reward + self.gamma * self.v[next_state])
+                self.v[s] = new_v
+                delta = max(delta, abs(v - new_v))
+            cnt += 1
+            if delta < self.theta:
+                break
         print("策略评估进行%d轮后完成" % cnt)
 
     def policy_improvement(self):  # Policy Improvement
-        ############################
-        # YOUR IMPLEMENTATION HERE #
-        ############################
-        pass        
+        # For each state
+        for s in range(self.ncol * self.nrow):
+            qsa_list = []
+            # For each action, compute action-value
+            for a in range(4):
+                qsa = 0
+                for p, next_state, reward, done in self.P[s][a]:
+                    qsa += p * (reward + self.gamma * self.v[next_state])
+                qsa_list.append(qsa)
+            
+            # Find the maximum action value
+            maxq = max(qsa_list)
+            # Count the number of actions that achieve maximum value
+            count = sum([1 if q == maxq else 0 for q in qsa_list])
+            # Build the new policy
+            self.pi[s] = [1.0/count if q == maxq else 0 for q in qsa_list]
         print("策略提升完成")
         return self.pi
 
@@ -128,19 +151,44 @@ class ValueIteration:
 
     def value_iteration(self):
         cnt = 0  #counter
-        ############################
-        # YOUR IMPLEMENTATION HERE #
-        ############################
-        pass
+        while True:
+            delta = 0
+            # For each state
+            for s in range(self.ncol * self.nrow):
+                v = self.v[s]
+                qsa_list = []
+                # For each action
+                for a in range(4):
+                    qsa = 0
+                    for p, next_state, reward, done in self.P[s][a]:
+                        qsa += p * (reward + self.gamma * self.v[next_state])
+                    qsa_list.append(qsa)
+                # Take the maximum Q value as the new value
+                self.v[s] = max(qsa_list)
+                delta = max(delta, abs(v - self.v[s]))
+            cnt += 1
+            if delta < self.theta:
+                break
         print("价值迭代一共进行%d轮" % cnt)
         self.get_policy()
 
-
     def get_policy(self):  # Derive a greedy Policy based on the value function
-        ############################
-        # YOUR IMPLEMENTATION HERE #
-        ############################
-        pass
+        # For each state
+        for s in range(self.ncol * self.nrow):
+            qsa_list = []
+            # For each action
+            for a in range(4):
+                qsa = 0
+                for p, next_state, reward, done in self.P[s][a]:
+                    qsa += p * (reward + self.gamma * self.v[next_state])
+                qsa_list.append(qsa)
+            
+            # Find the maximum action value
+            maxq = max(qsa_list)
+            # Count the number of actions that achieve maximum value
+            count = sum([1 if q == maxq else 0 for q in qsa_list])
+            # Build the policy
+            self.pi[s] = [1.0/count if q == maxq else 0 for q in qsa_list]
 
 
 
