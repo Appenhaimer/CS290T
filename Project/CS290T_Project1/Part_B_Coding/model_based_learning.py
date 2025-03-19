@@ -114,16 +114,19 @@ def update_mdp_model_with_history(counts, rewards, history):
     history: 
       a list of [state, action, reward, next_state, done]
     """
-
-    # HINT: For terminal states, we define that the probability of any action returning
-    # the state to itself is 1 (with zero reward)
-    # Make sure you record this information in your counts array by updating the counts
-    # for this accordingly for your value iteration to work.
-
-    ############################
-    # YOUR IMPLEMENTATION HERE #
-    ############################
-    pass
+    for state, action, reward, next_state, done in history:
+        # 更新计数
+        counts[state][action][next_state] += 1
+        
+        # 更新奖励（使用运行平均值）
+        current_count = counts[state][action][next_state]
+        current_reward = rewards[state][action][next_state]
+        rewards[state][action][next_state] = (current_reward * (current_count - 1) + reward) / current_count
+        
+        # 如果是终止状态，确保下一个状态是自身
+        if done:
+            counts[next_state][action][next_state] += 1
+            rewards[next_state][action][next_state] = 0
 
 
 def learn_with_mdp_model(env, num_episodes=5000, gamma = 0.95, e = 0.8, decay_rate = 0.99):
@@ -162,7 +165,6 @@ def learn_with_mdp_model(env, num_episodes=5000, gamma = 0.95, e = 0.8, decay_ra
     policy: np.array
       An array of shape [env.nS] representing the action to take at a given state.
     """
-
     P = initialize_P(env.nS, env.nA)    
     counts = initialize_counts(env.nS, env.nA)
     rewards = initialize_rewards(env.nS, env.nA)
@@ -170,11 +172,31 @@ def learn_with_mdp_model(env, num_episodes=5000, gamma = 0.95, e = 0.8, decay_ra
     policy = np.zeros(env.nS, dtype=int)
     All_episodes = np.load("All_episodes.npy", allow_pickle=True)
 
-    # After getting MDP, You can directly use ValueIteration in dynamic_programing.py to get policy
-    ############################
-    # YOUR IMPLEMENTATION HERE #
-    ############################
-    pass
+    # 使用收集到的轨迹更新模型
+    for episode in All_episodes:
+        update_mdp_model_with_history(counts, rewards, episode)
+    
+    # 将counts和rewards转换为环境模型P
+    P = counts_and_rewards_to_P(counts, rewards)
+    
+    # 使用值迭代找到最优策略
+    theta = 0.001  # 添加收敛阈值参数
+    # FrozenLake是4x4的网格世界
+    ncol = 4
+    nrow = 4
+    
+    # 创建ValueIteration对象
+    vi = ValueIteration(ncol, nrow, P, theta, gamma)
+    # 执行值迭代
+    vi.value_iteration()
+    
+    # 从ValueIteration对象中获取策略
+    # FrozenLake环境的动作映射：0-左，1-下，2-右，3-上
+    policy = np.zeros(env.nS, dtype=int)
+    for s in range(env.nS):
+        # 获取最大概率的动作索引
+        policy[s] = np.argmax(vi.pi[s])
+    
     return policy
 
 
