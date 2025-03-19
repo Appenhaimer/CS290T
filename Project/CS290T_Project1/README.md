@@ -25,9 +25,9 @@ Please carefully read Part_B.pdf and complete the 5 questions Q1-5.
 
 For Q3 and Q4, please write your answer below:
 
-Q3:
+Q3:Policy Iteration分为策略评估和改进两步，更关注策略的逐步改进，中间始终有策略；Value Iteration直接更新价值函数，更关注价值函数的直接优化，最后提取策略。
 
-Q4: 
+Q4: 策略迭代跑了146轮，价值迭代跑了15轮，价值迭代的收敛速度明显快于策略迭代。因为策略迭代需要维护和更新价值函数和策略函数两个函数，有两个两个嵌套循环；价值迭代只需要维护和更新价值函数，只有一个循环，策略是在最后一次性推导出来的。
 
 
 (Q1)20 + (Q2)20 + (Q3)10 + (Q4)10 + (Q5)10 = 70 pts
