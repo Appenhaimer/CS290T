@@ -19,6 +19,7 @@ Every problem is 15 pts.
 conda create -n gym_094 python==3.6.13
 conda activate gym_094
 pip install gym==0.9.4
+老师，是不是缺的pip包没写全啊？一直报错少包呢
 ```
 
 Please carefully read Part_B.pdf and complete the 5 questions Q1-5. 
@@ -34,3 +35,4 @@ Q4: 策略迭代跑了146轮，价值迭代跑了15轮，价值迭代的收敛�
 
 
 Finally, compress the entire folder into a zip file (e.g. 张三_2025233111.zip) and send it to wangyc2023@shanghaitech.edu.cn
+
