@@ -1,9 +1,9 @@
 # Project2   
 # Deadline: 2025/04/11  23:59
 
-Name: 
+Name: Zhou Ziqian	
 
-Student ID: 
+Student ID: 2024234377
 
 
 ## Coding for DRL (100 pts)
