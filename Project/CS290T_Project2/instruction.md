@@ -11,8 +11,9 @@ This document contains instructions for implementing three reinforcement learnin
 ## Task 1: Deep Q-Network (DQN) on Taxi Environment
 
 ### Environment Description
+
 - **Name**: Taxi (from Gymnasium's toy_text environments)
-- **Details**: 
+- **Details**:
   - Grid: $5 \times 5$
   - Objective: Move a taxi to pick up a passenger at one of four designated locations (Red, Green, Yellow, Blue), then drop them off at their destination.
   - State: Taxi starts at a random square; passenger starts at a designated location.
@@ -23,10 +24,12 @@ This document contains instructions for implementing three reinforcement learnin
     - -1 per step
 
 ### Problem Context
+
 - The state space is large (hundreds of states), making traditional Q-learning memory-intensive.
 - Use DQN to approximate the Q-value function with a parameterized neural network, suitable for discrete action spaces.
 
 ### Task
+
 - **File**: `dqn.ipynb`
 - **Objective**: Implement the DQN algorithm to solve the Taxi environment.
 - **Requirements**:
@@ -39,21 +42,24 @@ This document contains instructions for implementing three reinforcement learnin
 ## Task 2: Proximal Policy Optimization (PPO-Clip) on Breakout Environment
 
 ### Environment Description
+
 - **Name**: Breakout (from Arcade Learning Environment via Gym API)
 - **Details**:
   - Framework: Atari 2600 game via ALE (built on Stella emulator).
   - Objective: Move a paddle to hit a ball and destroy a brick wall at the top of the screen.
   - Dynamics: Score points by breaking bricks; break through the wall to let the ball cause chaos.
   - Lives: 5
-- **References**: 
+- **References**:
   - [ALE Gymnasium Interface](https://ale.farama.org/gymnasium-interface)
   - [ALE Breakout Documentation](https://ale.farama.org/environments/breakout/)
 
 ### Problem Context
+
 - PPO is an Actor-Critic algorithm improving on TRPO by simplifying implementation and enhancing performance.
 - Use PPO-Clip variant, which restricts the objective function to limit policy updates for stability.
 
 ### Algorithm: PPO-Clip
+
 ```
 Input: initial policy parameters θ₀, initial value function parameters φ₀
 For k = 0, 1, 2, ...:
@@ -66,7 +72,8 @@ End For
 ```
 
 ### Task
-- **File**: `ppo.ipynb`
+
+- **File**: `ppo.py`
 - **Objective**: Implement the PPO-Clip algorithm on the Breakout environment.
 - **Requirements**:
   - Use the provided actor and critic neural network structures (shared network) without modification.
@@ -77,6 +84,7 @@ End For
 ## Task 3: Deep Deterministic Policy Gradient (DDPG) on Pendulum Environment
 
 ### Environment Description
+
 - **Name**: Pendulum (from Gym’s Classic Control environments)
 - **Details**:
   - Objective: Apply torque to swing an inverted pendulum to an upright position.
@@ -86,10 +94,12 @@ End For
 - **Reference**: [Gym Pendulum Documentation](https://www.gymlibrary.dev/environments/classic_control/pendulum/)
 
 ### Problem Context
+
 - PPO is on-policy with low sample efficiency; DQN is off-policy but limited to discrete actions.
 - DDPG uses a deterministic policy and gradient ascent to handle continuous action spaces.
 
 ### Algorithm: DDPG
+
 ```
 Input: initial policy parameters θ, Q-function parameters φ, empty replay buffer D
 Set target parameters: θ_targ ← θ, φ_targ ← φ
@@ -114,6 +124,7 @@ Until convergence
 ```
 
 ### Task
+
 - **File**: `ddpg.ipynb`
 - **Objective**: Implement the DDPG algorithm on the Pendulum environment.
 - **Requirements**:
@@ -124,6 +135,7 @@ Until convergence
 ---
 
 ## General Notes
+
 - **Provided Structures**: Do not modify the given neural network structures or additional components (e.g., `ReplayBuffer`).
 - **Focus**: Complete the update iteration processes for each algorithm as specified.
 - **Resources**: Refer to linked documentation for environment details.
