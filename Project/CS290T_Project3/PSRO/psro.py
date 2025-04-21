@@ -1,4 +1,3 @@
-
 from env import RPSEnv
 from agent import Agent, tabular_Q
 import numpy as np
@@ -35,7 +34,16 @@ def estimate_reward(env, num_episodes, p1, p2):
         ############################
         # YOUR IMPLEMENTATION HERE #
         ############################
-        pass
+        state, _ = env.reset(opponent=p2)
+        episode_reward = 0
+        done = False
+        while not done:
+            action = p1.step(state, env.action_space.n)
+            next_state, reward, terminated, truncated, _ = env.step(action)
+            done = terminated or truncated
+            state = next_state
+            episode_reward += reward
+        R += episode_reward
     return R/num_episodes
 
 
@@ -59,6 +67,11 @@ def gamescape(env, pi, Ne):
     ############################
     # YOUR IMPLEMENTATION HERE #
     ############################
+    for i in tqdm(range(len(pi)), desc="Building payoff matrix", position=1, leave=False):
+        for j in range(len(pi)):
+            if i != j:  # Diagonal elements are zero
+                R[i, j] = estimate_reward(env, Ne, Agent(pi[i]), Agent(pi[j]))
+                R[j, i] = -R[i, j]  # Antisymmetric matrix
     return R
 
 
@@ -97,7 +110,38 @@ def PSRO_Q(env, num_iters=1000, num_steps_per_iter = 10000, eps=0.1, alpha=0.1, 
         ############################
         # YOUR IMPLEMENTATION HERE #
         ############################
+        # Use Q-learning to train a new policy
+        Q = tabular_Q(env, num_steps_per_iter, Q, epsilon=eps, alpha=alpha)
         
+        # Convert Q-values to policy
+        beta = np.zeros((env.observation_space.n, env.action_space.n))
+        for s in range(env.observation_space.n):
+            if np.sum(np.abs(Q[s])) > 1e-6:  # Ensure Q-values are not all zero
+                # Use softmax to convert Q-values to probability distribution
+                q_exp = np.exp(Q[s] - np.max(Q[s]))  # Subtract maximum value for numerical stability
+                beta[s] = q_exp / np.sum(q_exp)
+                
+                # Optional: Add a small amount of randomness to ensure not completely identical
+                beta[s] = 0.95 * beta[s] + 0.05 * np.random.dirichlet(np.ones(env.action_space.n))
+                # Normalize
+                beta[s] = beta[s] / np.sum(beta[s])
+            else:
+                # If all Q-values are zero, use uniform distribution with a small amount of randomness
+                beta[s] = np.ones(env.action_space.n) / env.action_space.n
+        
+        # Check if the new policy is too similar to existing policies
+        similar = False
+        for pi_i in pi:
+            similarity = np.sum(np.abs(pi_i - beta)) / (env.observation_space.n * env.action_space.n)
+            if similarity < 0.1:  # If too similar, add more randomness
+                similar = True
+                break
+
+        if similar:
+            # If too similar, add more random perturbation
+            for s in range(env.observation_space.n):
+                beta[s] = 0.7 * beta[s] + 0.3 * np.random.dirichlet(np.ones(env.action_space.n))
+                beta[s] = beta[s] / np.sum(beta[s])
 
         # check criteria for early stopping
         stop=0
