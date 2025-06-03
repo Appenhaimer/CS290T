@@ -47,19 +47,27 @@ class PureMCTS():
         """
 
         # doing rollout for numMCTSSims times
-        """Your code here"""
+        for i in range(self.args.numMCTSSims):
+            self.search(canonicalBoard)
 
         s = self.game.stringRepresentation(canonicalBoard)
         counts = [self.Nsa[(s, a)] if (s, a) in self.Nsa else 0 for a in range(self.game.getActionSize())]
 
         if temp == 0:
             # return the probs with only one of the best actions (break ties randomly)
-            """Your code here"""
+            bestAs = np.array(np.argwhere(counts == np.max(counts))).flatten()
+            bestA = np.random.choice(bestAs)
+            probs = [0] * len(counts)
+            probs[bestA] = 1
+            return probs
 
         # return the probs with temperature
         # the policy vector where the probability of the ith action is proportional to Nsa[(s,a)]**(1/temp)
-        """Your code here"""
-    
+        counts = [x ** (1. / temp) for x in counts]
+        counts_sum = float(sum(counts))
+        probs = [x / counts_sum for x in counts]
+        return probs
+
     def select(self, canonicalBoard) -> Tuple[List[Tuple[np.ndarray, int]], np.ndarray]:
         """
         Selects an unexpanded node on the given canonical board.
@@ -76,14 +84,19 @@ class PureMCTS():
         s = self.game.stringRepresentation(canonicalBoard)
         while True:
             # if node is expanded or terminal return the path and leaf node
-            """Your code here"""
+            if s not in self.Ns or self.game.getGameEnded(canonicalBoard, 1) != 0:
+                return path, canonicalBoard
             
             # select node by ucb selection to generate a path
             # NOTICE: for the board is always a canonicalBoard, so the current player is always 1
             # use self.game.getNextState(canonicalBoard, 1, action)
-            """Your code here"""
+            valids = self.Vs[s]
+            action = self.ucb_select(s, valids)
+            path.append((canonicalBoard, action))
+            canonicalBoard, next_player = self.game.getNextState(canonicalBoard, 1, action)
+            canonicalBoard = self.game.getCanonicalForm(canonicalBoard, next_player)
             s = self.game.stringRepresentation(canonicalBoard)
-    
+
     def expand(self, canonicalBoard, s):
         """
         Expand the search tree by adding the valid moves for the current state.
@@ -122,18 +135,25 @@ class PureMCTS():
             # if the game has ended
             # return the reward
             # NOTICE: beware which one player the reward is for, which can be determined by invert_reward
-            """Your code here"""
+            if self.Es[s] != 0:
+                return -self.Es[s] if invert_reward else self.Es[s]
 
             if s in self.Vs:
                 valids = self.Vs[s]
             else:
                 valids = self.game.getValidMoves(canonicalBoard, 1)
-                self.Vs = valids
+                self.Vs[s] = valids
             # get random action from valid moves
             # get the next board and update 's'
             # NOTICE: for the board is always a canonicalBoard, so the current player is always 1
             # use self.game.getNextState(canonicalBoard, 1, action)
-            """Your code here"""
+            valids_prob = np.array(valids, dtype=np.float64)
+            valids_prob = valids_prob / np.sum(valids_prob)
+            action = np.random.choice(self.game.getActionSize(), p=valids_prob)
+            canonicalBoard, next_player = self.game.getNextState(canonicalBoard, 1, action)
+            canonicalBoard = self.game.getCanonicalForm(canonicalBoard, next_player)
+            s = self.game.stringRepresentation(canonicalBoard)
+            invert_reward = not invert_reward
             
     def backup(self, path, reward):
         """
@@ -147,7 +167,18 @@ class PureMCTS():
 
         # This method iterates over the path in reverse order, updating Ns, Nsa, and Qsa.
         # NOTICE: the reward is different for different player, so we need to invert it every time
-        """Your code here"""
+        for board, action in reversed(path):
+            s = self.game.stringRepresentation(board)
+            
+            if (s, action) in self.Qsa:
+                self.Qsa[(s, action)] = (self.Nsa[(s, action)] * self.Qsa[(s, action)] + reward) / (self.Nsa[(s, action)] + 1)
+                self.Nsa[(s, action)] += 1
+            else:
+                self.Qsa[(s, action)] = reward
+                self.Nsa[(s, action)] = 1
+                
+            self.Ns[s] += 1
+            reward = -reward
 
     def search(self, canonicalBoard):
         """
@@ -161,16 +192,18 @@ class PureMCTS():
             None: This method does not return a value.
         """
         # do selection, expansion and simulation
-        """Your code here"""
+        path, leaf_board = self.select(canonicalBoard)
+        s = self.game.stringRepresentation(leaf_board)
+        self.expand(leaf_board, s)
+        reward = self.simulate(leaf_board, s)
 
         # expand the node for the root
         if len(path) == 0:
             return
 
         # do backup
-        """Your code here"""
-        
-        
+        self.backup(path, reward)
+            
     def ucb_select(self, s: str, validMoves: np.ndarray) -> int:
         """
         Selects the action with the highest Upper Confidence Bound (UCB) for a given state.
@@ -178,7 +211,7 @@ class PureMCTS():
         Args:
             s (str): The string representation of the current state.
             validMoves (np.ndarray): A binary array where each index represents whether 
-                                     the corresponding action is valid (1) or not (0).
+                                    the corresponding action is valid (1) or not (0).
 
         Returns:
             int: The index of the action with the highest UCB.
@@ -188,9 +221,19 @@ class PureMCTS():
         
         # score = Qsa + cpuct * sqrt(Ns / Nsa)
         # NOTICE: we always select the `first` action that has not been visited
-        """Your code here"""
+        for a in range(len(validMoves)):
+            if validMoves[a]:
+                if (s, a) in self.Qsa:
+                    u = self.Qsa[(s, a)] + self.args.cpuct * math.sqrt(self.Ns[s]) / (1 + self.Nsa[(s, a)])
+                else:
+                    return a  # first unvisited action
+                
+                if u > cur_best:
+                    cur_best = u
+                    best_act = a
 
         return best_act
+
 
 
 class MCTS(PureMCTS):
@@ -227,9 +270,43 @@ class MCTS(PureMCTS):
         # NOTICE: use nnet to get policy and reward
         # NOTICE: store the policy into Ps
         # NOTICE: there is no need to simulate unitl the game ends
-        """Your code here"""
+        if s not in self.Es:
+            self.Es[s] = self.game.getGameEnded(canonicalBoard, 1)
+        if self.Es[s] != 0:
+            return -self.Es[s]
+        
+        # use neural network to get policy and value
+        self.Ps[s], v = self.nnet.predict(canonicalBoard)
+        valids = self.game.getValidMoves(canonicalBoard, 1)
+        self.Ps[s] = self.Ps[s] * valids  # mask invalid moves
+        sum_Ps_s = np.sum(self.Ps[s])
+        if sum_Ps_s > 0:
+            self.Ps[s] /= sum_Ps_s  # renormalize
+        else:
+            log.error("All valid moves were masked, doing a workaround.")
+            self.Ps[s] = self.Ps[s] + valids
+            self.Ps[s] /= np.sum(self.Ps[s])
+        
+        self.Vs[s] = valids
+        self.Ns[s] = 0
+        return -v
 
     def ucb_select(self, s: str, validMoves: np.ndarray) -> int:
         # ucb select formula: u = value + cpuct * P * sqrt(N) / (1 + Nsa)
-        """Your code here"""
+        cur_best = -float('inf')
+        best_act = -1
+        
+        for a in range(len(validMoves)):
+            if validMoves[a]:
+                if (s, a) in self.Qsa:
+                    u = self.Qsa[(s, a)] + self.args.cpuct * self.Ps[s][a] * math.sqrt(self.Ns[s]) / (1 + self.Nsa[(s, a)])
+                else:
+                    u = self.args.cpuct * self.Ps[s][a] * math.sqrt(self.Ns[s] + EPS)
+                
+                if u > cur_best:
+                    cur_best = u
+                    best_act = a
+        
+        return best_act
+
 
